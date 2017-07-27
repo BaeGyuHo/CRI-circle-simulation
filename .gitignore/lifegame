@@ -1,5 +1,7 @@
 /* this code written with C languge
 this code may runs with gsl-2.5 libarary
+
+If anyone have some better way to simulate this problem or to make simulation more complicate, please do not bother with it. 
 */
 
 #include<stdio.h>
@@ -9,7 +11,8 @@ this code may runs with gsl-2.5 libarary
 #include<gsl/gsl_randist.h>
 
 
-/* 1. maximun resource
+/* parameters
+   1. maximun resource
    2. amplifying rate
    3. consumption
    4. age
@@ -122,7 +125,7 @@ int main(int argc,char *argv[])
 	    { 
 	      if(indiv_stat[i] == 1)
 		{
-		  br = exp(-0.01*tot_N*(1/ratio)*fabs(indiv_age[i]-30));
+		  br = exp(-0.01*tot_N*(1/ratio)*fabs(indiv_age[i]-30));  //total numbers of units take a role as supression
 		  if(gsl_rng_uniform_pos(r)<br)
 		    {
 		      next_tot_N++;
