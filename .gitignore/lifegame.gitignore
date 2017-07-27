@@ -1,3 +1,7 @@
+/* this code written with C languge
+this code may runs with gsl-2.5 libarary
+*/
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
