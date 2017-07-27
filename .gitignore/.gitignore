@@ -1,0 +1,165 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
+#include<gsl/gsl_rng.h>
+#include<gsl/gsl_randist.h>
+
+
+/* 1. maximun resource
+   2. amplifying rate
+   3. consumption
+   4. age
+   5. death rate of child, adult, old -> anti-proper to resource per each unit
+   6. birth rate of child proper to resource per reproducables i.e. adult's
+   7. indiv stat -> (c,0) (a,1) (o,2)
+*/
+
+gsl_rng*r;
+
+int statset(int age)
+{
+  int status = 0;
+  if(age>=0 && age<20)
+    {
+      status = 0;
+    }
+  if(age>=20 && age<60)
+    {
+      status = 1;
+    }
+  if(age>=60)
+    {
+      status =2;
+    }
+  return status;
+}
+
+
+int main(int argc,char *argv[])
+{
+  FILE *data;
+  int time = atoi(argv[1]);
+  int N_max = 200000;
+  int indiv_stat[N_max];
+  int indiv_age[N_max];
+
+  int tot_N = 10;
+  double R_tot = 100;
+  double R_tot_prev = R_tot;
+  double amp = 0;
+  double dr = 0;
+  double br = 0;
+  double tr = 0;
+
+  const gsl_rng_type*T;
+   
+  gsl_rng_env_setup();
+  
+  T=gsl_rng_default;
+  r=gsl_rng_alloc(T);
+
+
+  for(int i=0;i<N_max;i++)
+    {
+      indiv_age[i] = 0;
+      indiv_stat[i] = 0;
+    }
+  for(int i=0;i<tot_N;i++)
+    {
+      indiv_age[i] = 20;
+    }
+  int na = 0;
+  int no = 0;
+  int nc = 0;
+  data=fopen("life.d","w");
+  for(int t=0; t<time; t++)
+    {
+      na = 0;
+      no = 0;
+      nc = 0;
+      if(R_tot<0)
+	{
+	  printf("society collapsed\n");
+	  return 0;
+	}
+      if(R_tot>0)
+	{
+	  for(int i=0;i<tot_N;i++)
+	    {
+	      indiv_stat[i] = statset(indiv_age[i]);
+	    }
+	  for(int i=0;i<tot_N;i++)
+	    {
+	      if(indiv_stat[i] == 1)
+		{
+		  na++;
+		}
+	      if(indiv_stat[i] == 2)
+		{
+		  no++;
+		}
+	      if(indiv_stat[i] == 0)
+		{
+		  nc++;
+		}
+	    }
+	  printf("%d\t,%d\t,%d\t, %d\n",nc,na,no,tot_N);
+	  //reproducing resource
+	  R_tot_prev = R_tot;
+	  
+	  R_tot = R_tot + 3*na*(1/(1-(double)no/tot_N));
+	  printf("%g\n",amp);
+	  double ratio = R_tot/R_tot_prev;
+	  
+	  //giving birth
+	  
+	  int next_tot_N = tot_N;
+	  for(int i=0;i<tot_N;i++)
+	    { 
+	      if(indiv_stat[i] == 1)
+		{
+		  br = exp(-0.01*tot_N*(1/ratio)*fabs(indiv_age[i]-30));
+		  if(gsl_rng_uniform_pos(r)<br)
+		    {
+		      next_tot_N++;
+		      indiv_age[next_tot_N] = 0;
+		      indiv_stat[next_tot_N] = statset(indiv_age[next_tot_N]);
+		    }
+		}
+	    }
+	  
+	  tot_N = next_tot_N;
+	  
+	   
+	  //aging
+	  for(int i=0;i<tot_N;i++)
+	    {
+	      indiv_age[i]++;
+	    }
+	  //consump resource
+	  
+	  R_tot = R_tot - (double)nc;
+	  
+	  
+	  
+	  //reduce units
+	  for(int i=tot_N-1;i>-1;i--)
+	    {
+	      dr = 1-exp(-0.01*(1/ratio)*log(fabs(indiv_age[i]-20)));
+	      
+	      if(gsl_rng_uniform(r)<dr)
+		{
+		  indiv_age[i] = indiv_age[tot_N-1];
+		  tot_N--;		   
+		}
+	    }
+	  printf("%g\n",br);
+	  printf("%g\n",dr);
+	  fprintf(data,"%d\t %d\t %g\t %d\t %d\t %d\n",t,tot_N,R_tot,nc,na,no);
+	  printf("%d\t %d\t %g\n",t,tot_N,ratio);
+	}
+    }
+  
+  fclose(data);
+  return 0;
+}
